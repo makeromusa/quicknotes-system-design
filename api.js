@@ -81,3 +81,57 @@ async function loadNotes() {
 
 // Event Listeners
 loadBtn.addEventListener('click', loadNotes);
+
+// Task 2: Create Note (POST)
+async function createNote(event) {
+    event.preventDefault(); // Prevent the form from refreshing the page
+
+    const title = titleInput.value.trim();
+    const body = bodyInput.value.trim();
+
+    // Validation (Rubric requirement)
+    if (!title) {
+        showStatus('Title is required.', 'error');
+        return;
+    }
+    if (title.length > 100) {
+        showStatus('Title cannot exceed 100 characters.', 'error');
+        return;
+    }
+
+    showStatus('Creating note...', 'loading');
+    submitBtn.disabled = true;
+
+    try {
+        const payload = {
+            title: title,
+            body: body,
+            userId: 1
+        };
+
+        const newNote = await request(API_URL, {
+            method: 'POST',
+            body: JSON.stringify(payload),
+            headers: {
+                'Content-type': 'application/json; charset=UTF-8',
+            },
+        });
+
+        // Add the new note to the top of the list
+        const noteEl = createNoteElement(newNote);
+        notesList.prepend(noteEl);
+
+        // JSONPlaceholder always returns 201 for a successful POST
+        showStatus(`Note created (status 201, id ${newNote.id}).`, 'success');
+        
+        // Clear the form
+        noteForm.reset();
+    } catch (error) {
+        showStatus('Failed to create note. Please try again.', 'error');
+    } finally {
+        submitBtn.disabled = false;
+    }
+}
+
+// Attach event listener to the form
+noteForm.addEventListener('submit', createNote);
