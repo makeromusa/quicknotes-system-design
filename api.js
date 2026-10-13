@@ -40,10 +40,17 @@ function createNoteElement(note) {
     const bodyEl = document.createElement('p');
     bodyEl.textContent = note.body;   // Secure: No innerHTML
     
+    // Task 3: Add Delete Button
+    const deleteBtn = document.createElement('button');
+    deleteBtn.textContent = 'Delete';
+    deleteBtn.className = 'delete-btn';
+    
+    // Attach event listener for deletion
+    deleteBtn.addEventListener('click', () => deleteNote(note.id, li, deleteBtn));
+    
     li.appendChild(titleEl);
     li.appendChild(bodyEl);
-    
-    // We will add the Delete button here in Task 3
+    li.appendChild(deleteBtn);
     
     return li;
 }
@@ -78,9 +85,6 @@ async function loadNotes() {
         loadBtn.disabled = false;
     }
 }
-
-// Event Listeners
-loadBtn.addEventListener('click', loadNotes);
 
 // Task 2: Create Note (POST)
 async function createNote(event) {
@@ -133,5 +137,41 @@ async function createNote(event) {
     }
 }
 
-// Attach event listener to the form
+// Task 3: Delete Note (DELETE)
+async function deleteNote(id, listItem, deleteBtn) {
+    showStatus('Deleting note...', 'loading');
+    deleteBtn.disabled = true; // Disable just this specific button
+
+    try {
+        /*
+         * EDGE CASE HANDLING: The JSONPlaceholder Illusion
+         * JSONPlaceholder gives all new notes an ID of 101+, but doesn't persist them.
+         * A DELETE request to /posts/101 will fail with a 404 Not Found error.
+         * To handle this sensibly, if the ID is > 100, we skip the network request
+         * and only remove the element from the DOM.
+         */
+        if (id <= 100) {
+            await request(`${API_URL}/${id}`, {
+                method: 'DELETE'
+            });
+        } else {
+            console.warn(`Simulating deletion for non-persisted JSONPlaceholder ID: ${id}`);
+        }
+
+        // Remove the note from the UI
+        listItem.remove();
+        showStatus(`Note deleted successfully (id ${id}).`, 'success');
+
+        // Show empty state if that was the last note
+        if (notesList.children.length === 0) {
+            notesList.innerHTML = '<li>No notes found.</li>';
+        }
+    } catch (error) {
+        showStatus('Failed to delete note. Please try again.', 'error');
+        deleteBtn.disabled = false; // Re-enable so they can try again
+    }
+}
+
+// Event Listeners
+loadBtn.addEventListener('click', loadNotes);
 noteForm.addEventListener('submit', createNote);
